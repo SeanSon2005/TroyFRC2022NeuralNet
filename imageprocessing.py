@@ -7,16 +7,16 @@ import time
 #success = True
 #frames = 0
 
-lower_threshold = np.array([100,50,50])
+lower_threshold = np.array([100,40,40])
 upper_threshold = np.array([130,255,255])
 
-x_res = 1920
-y_res = 1080
-scale_factor = 6
+scale_factor = 1
 
-x_res = int(x_res/scale_factor)
-y_res = int(y_res/scale_factor)
 vid = cv2.VideoCapture(0)
+ret, test_frame = vid.read()
+
+x_res = int(test_frame.shape[1]/scale_factor)
+y_res = int(test_frame.shape[0]/scale_factor)
 
 while True:
   #success,frame = vidcap.read()
@@ -24,16 +24,20 @@ while True:
 
   ret, frame = vid.read()
 
+
   frame_scaled = cv2.resize(frame, dsize=(x_res, y_res), interpolation=cv2.INTER_CUBIC)
+  
   hsv = cv2.cvtColor(frame_scaled, cv2.COLOR_BGR2HSV)
   mask = cv2.inRange(hsv, lower_threshold, upper_threshold)
     
   #noise reduction code
-  kernel = np.ones((5, 5), np.uint8)
+  kernel = np.ones((3, 3), np.uint8)
   mask_kernel = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-  noise_reduction = cv2.blur(mask_kernel,(40,40))
+  noise_reduction = cv2.blur(mask,(50,50))
+  noise_reduction = cv2.inRange(noise_reduction,10,50)
+  noise_reduction = cv2.blur(noise_reduction,(15,15))
 
-  circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1,x_res,param1=50,param2=70,minRadius=0,maxRadius=200)
+  circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
 
   if circles is not None:
     circles = np.uint16(np.around(circles))
@@ -52,5 +56,3 @@ while True:
 
 vid.release()
 cv2.destroyAllWindows()
-
-  
