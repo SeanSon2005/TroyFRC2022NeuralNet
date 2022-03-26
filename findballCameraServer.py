@@ -53,11 +53,14 @@ if(blue_ball):
     circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
 
     if circles is not None:
+      vision_nt.putBoolean("seeBall",True)
       circles = np.uint16(np.around(circles))
       for i in circles[0,:]:
         #print("x:",i[0],"y:",i[1])
         vision_nt.putNumber('ball_x',i[0])
         vision_nt.putNumber('ball_y', i[1])
+    else:
+      vision_nt.putBoolean("seeBall",False)
 
 
     #outputStream.putFrame(noise_reduction)
@@ -85,9 +88,12 @@ else:
     circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
 
     if circles is not None:
+      vision_nt.putBoolean("seeBall",True)
       circles = np.uint16(np.around(circles))
       for i in circles[0,:]:
         #print("x:",i[0],"y:",i[1])
         vision_nt.putNumber('target_x',i[0])
         vision_nt.putNumber('target_y', i[1])
+    else:
+      vision_nt.putBoolean("seeBall",False)
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
