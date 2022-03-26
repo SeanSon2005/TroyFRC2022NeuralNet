@@ -32,6 +32,9 @@ y_res = int(test_frame.shape[0]/scale_factor)
 
 vision_nt = NetworkTables.getTable('Vision')
 
+vision_nt.putNumber("x_res",x_res)
+vision_nt.putNumber("y_res",y_res)
+
 if(blue_ball):
   while True:
     #success,frame = vidcap.read()
@@ -92,8 +95,8 @@ else:
       circles = np.uint16(np.around(circles))
       for i in circles[0,:]:
         #print("x:",i[0],"y:",i[1])
-        vision_nt.putNumber('target_x',i[0])
-        vision_nt.putNumber('target_y', i[1])
+        vision_nt.putNumber('ball_x',i[0])
+        vision_nt.putNumber('ball_y', i[1])
     else:
       vision_nt.putBoolean("seeBall",False)
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
