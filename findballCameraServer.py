@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import time
 from cscore import CameraServer
-from networktables import NetworkTables
+from networktables import NetworkTable, NetworkTables
+import threading
 
 blue_ball = True
 
@@ -30,8 +31,25 @@ ret, test_frame = cvSink.grabFrame(img)
 x_res = int(test_frame.shape[1]/scale_factor)
 y_res = int(test_frame.shape[0]/scale_factor)
 
-vision_nt = NetworkTables.getTable('Vision')
 
+cond = threading.Condition()
+notified = [False]
+
+def connectionListener(connected, info):
+    #print(info, '; Connected=%s' % connected)
+    with cond:
+        notified[0] = True
+        cond.notify()
+
+NetworkTables.initialize(server='10.39.52.2')
+NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+
+with cond:
+    #print("Waiting")
+    if not notified[0]:
+        cond.wait()
+
+vision_nt = NetworkTables.getTable('Vision')
 vision_nt.putNumber("x_res",x_res)
 vision_nt.putNumber("y_res",y_res)
 
