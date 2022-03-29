@@ -41,17 +41,20 @@ def connectionListener(connected, info):
         notified[0] = True
         cond.notify()
 
-NetworkTables.initialize(server='10.39.52.2')
-NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+#NetworkTables.initialize(server='10.39.52.2')
+#NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
 
-with cond:
+#with cond:
     #print("Waiting")
-    if not notified[0]:
-        cond.wait()
+    #if not notified[0]:
+        #cond.wait()
 
 vision_nt = NetworkTables.getTable('Vision')
-vision_nt.putNumber("x_res",x_res)
-vision_nt.putNumber("y_res",y_res)
+
+def PIDCalc(x_value):
+  error = 200-x_value
+  return error/160
+
 
 if(blue_ball):
   while True:
@@ -74,17 +77,13 @@ if(blue_ball):
     circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
 
     if circles is not None:
-      vision_nt.putBoolean("seeBall",True)
       circles = np.uint16(np.around(circles))
       for i in circles[0,:]:
-        #print("x:",i[0],"y:",i[1])
-        vision_nt.putNumber('ball_x',i[0])
-        vision_nt.putNumber('ball_y', i[1])
-    else:
-      vision_nt.putBoolean("seeBall",False)
-
+        print("PID",PIDCalc(i[0]))
+        vision_nt.putNumber('PID',i[0])
 
     #outputStream.putFrame(noise_reduction)
+    #print("FPS: ", round(1.0 / (time.time() - start_time)))
 
 else:
   while True:
@@ -109,12 +108,8 @@ else:
     circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
 
     if circles is not None:
-      vision_nt.putBoolean("seeBall",True)
       circles = np.uint16(np.around(circles))
       for i in circles[0,:]:
-        #print("x:",i[0],"y:",i[1])
-        vision_nt.putNumber('ball_x',i[0])
-        vision_nt.putNumber('ball_y', i[1])
-    else:
-      vision_nt.putBoolean("seeBall",False)
+        vision_nt.putNumber('PID',PIDCalc(i[0]))
+
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
