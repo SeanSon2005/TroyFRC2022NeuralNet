@@ -5,7 +5,17 @@ from cscore import CameraServer
 from networktables import NetworkTable, NetworkTables
 import threading
 
-blue_ball = True
+blue_ball = True #determine ally color
+testing_on_computer = True #testing on roborio or computer
+
+#PID controller coefficients
+Kp = 1 #coefficient for proportional
+Ki = 0.1 #coefficient for integral
+Kd = 0 #coefficient for derivative
+
+integral_previous = 1
+print(integral_previous)
+start_time = time.time()
 
 if(blue_ball):
   lower_threshold = np.array([100,40,40])
@@ -31,7 +41,6 @@ ret, test_frame = cvSink.grabFrame(img)
 x_res = int(test_frame.shape[1]/scale_factor)
 y_res = int(test_frame.shape[0]/scale_factor)
 
-
 cond = threading.Condition()
 notified = [False]
 
@@ -41,30 +50,51 @@ def connectionListener(connected, info):
         notified[0] = True
         cond.notify()
 
-#NetworkTables.initialize(server='10.39.52.2')
-#NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+#only runs if running through Roborio (boolean set above)
+if not testing_on_computer:
+  NetworkTables.initialize(server='10.39.52.2')
+  NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
 
-#with cond:
-    #print("Waiting")
-    #if not notified[0]:
-        #cond.wait()
+  #waits for Network Tables
+  with cond:
+      print("Waiting")
+      if not notified[0]:
+          cond.wait()
 
-vision_nt = NetworkTables.getTable('Vision')
+#vision_nt = NetworkTables.getTable('Vision')
 
+#PID calculations
 def PIDCalc(x_value):
-  error = 200-x_value
+  #declares integral previous and start time as the global ones
+  global integral_previous
+  global start_time
+
+  #PID calculations
+  x_value = 200 - x_value
+  errorP = x_value * Kp
+  errorI = (integral_previous + (x_value * (time.time()-start_time))) * Ki
+  errorD = Kd
+  error = errorP + errorI + errorD
+
+  #updating integral
+  integral_previous = errorI
+
+  #update start time
+  start_time = time.time()
+  
   return error/160
 
 
 if(blue_ball):
   while True:
-    #success,frame = vidcap.read()
-    start_time = time.time()
-
+    #getting video frame
     ret, frame = cvSink.grabFrame(img)
     frame_scaled = cv2.resize(frame, dsize=(x_res, y_res), interpolation=cv2.INTER_CUBIC)
     
+    #convert image to HSV
     hsv = cv2.cvtColor(frame_scaled, cv2.COLOR_BGR2HSV)
+
+    #mask image with color range (blue)
     mask = cv2.inRange(hsv, lower_threshold, upper_threshold)
       
     #noise reduction code
@@ -80,10 +110,7 @@ if(blue_ball):
       circles = np.uint16(np.around(circles))
       for i in circles[0,:]:
         print("PID",PIDCalc(i[0]))
-        vision_nt.putNumber('PID',i[0])
-
-    #outputStream.putFrame(noise_reduction)
-    #print("FPS: ", round(1.0 / (time.time() - start_time)))
+        #vision_nt.putNumber('PID',PIDCalc(i[0]))
 
 else:
   while True:
