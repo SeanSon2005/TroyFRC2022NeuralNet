@@ -6,7 +6,7 @@ from networktables import NetworkTable, NetworkTables
 import threading
 
 blue_ball = True #determine ally color
-testing_on_computer = True #testing on roborio or computer
+testing_on_computer = False #testing on roborio or computer
 
 #PID controller coefficients
 Kp = 1 #coefficient for proportional
@@ -61,7 +61,7 @@ if not testing_on_computer:
       if not notified[0]:
           cond.wait()
 
-#vision_nt = NetworkTables.getTable('Vision')
+vision_nt = NetworkTables.getTable('Vision')
 
 #PID calculations
 def PIDCalc(x_value):
@@ -109,8 +109,8 @@ if(blue_ball):
     if circles is not None:
       circles = np.uint16(np.around(circles))
       for i in circles[0,:]:
-        print("PID",PIDCalc(i[0]))
-        #vision_nt.putNumber('PID',PIDCalc(i[0]))
+        #print("PID",PIDCalc(i[0]))
+        vision_nt.putNumber('PID',PIDCalc(i[0]))
 
 else:
   while True:
