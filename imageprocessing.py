@@ -23,15 +23,6 @@ else:
   lower_threshold2 = np.array([170,40,40])
   upper_threshold2 = np.array([179,255,255])
 
-scale_factor = 1
-
-vid = cv2.VideoCapture(0)
-ret, test_frame = vid.read()
-
-x_res = int(test_frame.shape[1]/scale_factor)
-y_res = int(test_frame.shape[0]/scale_factor)
-
-
 def distance_estimation(radius):
     global distance_avg
     distance_avg = np.append(np.delete(np.copy(distance_avg),0),radius)
@@ -69,6 +60,15 @@ def PIDCalc(x_value, distance):
   return error/120
 
 
+
+scale_factor = 2
+
+vid = cv2.VideoCapture(0)
+ret, test_frame = vid.read()
+
+x_res = int(test_frame.shape[1]/scale_factor)
+y_res = int(test_frame.shape[0]/scale_factor)
+
 if(blue_ball):
   while True:
     #getting video frame
@@ -96,6 +96,8 @@ if(blue_ball):
         print("PID",PIDCalc(i[0],distance_estimation(i[2])))
     
     cv2.imshow("result",noise_reduction)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+      break
 
 else:
   while True:
@@ -123,3 +125,8 @@ else:
         print("sadge")
 
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+      break
+
+vid.release()
+cv2.destroyAllWindows()
