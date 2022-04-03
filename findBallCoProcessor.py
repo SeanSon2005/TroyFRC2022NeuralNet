@@ -6,8 +6,8 @@ from networktables import NetworkTable, NetworkTables
 import threading
 import math
 
-blue_ball = True #determine ally color
-testing_on_computer = True #testing on roborio or computer
+blue_ball = True #determine ally color Blue(True) or Red(False)
+testing_on_computer = False #testing on roborio(False) or computer(True)
 
 #PID controller coefficients
 Kp = 1 #coefficient for proportional
@@ -60,7 +60,7 @@ if not testing_on_computer:
       if not notified[0]:
           cond.wait()
 
-#vision_nt = NetworkTables.getTable('Vision')
+vision_nt = NetworkTables.getTable('Vision')
 
 #PID calculations
 def PIDCalc(x_value):
@@ -111,8 +111,8 @@ if(blue_ball):
       circles = np.uint16(np.around(circles))
       max_radius = math.floor((circles.argmax()+1)/3)
       x_pos = circles[0,max_radius,0]
-      print(PIDCalc(x_pos))
-      #vision_nt.putNumber('PID',PIDCalc(x_pos))
+      #print(PIDCalc(x_pos))
+      vision_nt.putNumber('PID',PIDCalc(x_pos))
     
     #Print Frames Per Second
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
@@ -142,7 +142,7 @@ else:
       circles = np.uint16(np.around(circles))
       max_radius = math.floor((circles.argmax()+1)/3)
       x_pos = circles[0,max_radius,0]
-      print(PIDCalc(x_pos))
-      #vision_nt.putNumber('PID',PIDCalc(x_pos))
+      #print(PIDCalc(x_pos))
+      vision_nt.putNumber('PID',PIDCalc(x_pos))
 
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
