@@ -4,19 +4,18 @@ import time
 from cscore import CameraServer
 from networktables import NetworkTable, NetworkTables
 import threading
+import math
 
 blue_ball = True #determine ally color
 testing_on_computer = True #testing on roborio or computer
 
 #PID controller coefficients
 Kp = 1 #coefficient for proportional
-Ki = 0 #coefficient for integral
+Ki = 0.2 #coefficient for integral
 Kd = 0 #coefficient for derivative
-Kdist = 1 #coefficient for distance
 
 integral_previous = 0
 start_time = time.time()
-distance_avg = np.array([1,1,1,1,1,1])
 
 if(blue_ball):
   lower_threshold = np.array([100,40,40])
@@ -35,14 +34,11 @@ cs.enableLogging()
 camera = cs.startAutomaticCapture()
 
 cvSink = cs.getVideo()
-img = np.zeros(shape=(240, 320, 3), dtype=np.uint8)
 
-ret, test_frame = cvSink.grabFrame(img)
+x_res = 640
+y_res = 360
 
-x_res = int(test_frame.shape[1]/scale_factor)
-y_res = int(test_frame.shape[0]/scale_factor)
-
-
+img = np.zeros(shape=(x_res, y_res, 3), dtype=np.uint8)
 
 cond = threading.Condition()
 notified = [False]
@@ -66,74 +62,60 @@ if not testing_on_computer:
 
 #vision_nt = NetworkTables.getTable('Vision')
 
-def distance_estimation(radius):
-    global distance_avg
-    distance_avg = np.append(np.delete(np.copy(distance_avg),0),radius)
-    tune = (int)(np.average(distance_avg)) - 50
-    if(tune < 0):
-        tune = 0
-    if(tune > 40):
-        tune = 40
-    return tune
-
-    
-
 #PID calculations
-def PIDCalc(x_value, distance):
+def PIDCalc(x_value):
   #declares integral previous and start time as the global ones
   global integral_previous
   global start_time
 
-  #x_value adjustments
-  x_value = 160 - x_value
-
-  #x_value * distance
+  #x_value adjustments (find error relative to center: 320p)
+  x_value = 320 - x_value
 
   #PID calculations
   errorP = x_value * Kp
   errorI = (integral_previous + (x_value * (time.time()-start_time))) * Ki
   errorD = Kd
   error = errorP + errorI + errorD
-  if (error > 0):
-      error += distance*Kdist
-  else:
-      error -= distance*Kdist
-
   #updating integral
   integral_previous = errorI
 
   #update start time
   start_time = time.time()
   
-  return error/120
+  return error/320
 
 
 if(blue_ball):
   while True:
+    #starting time for finding Frames per second
+    #start_time = time.time()
+
     #getting video frame
-    ret, frame = cvSink.grabFrame(img)
-    frame_scaled = cv2.resize(frame, dsize=(x_res, y_res), interpolation=cv2.INTER_CUBIC)
-    
+    ret, frame_scaled = cvSink.grabFrame(img)
+  
     #convert image to HSV
     hsv = cv2.cvtColor(frame_scaled, cv2.COLOR_BGR2HSV)
 
     #mask image with color range (blue)
     mask = cv2.inRange(hsv, lower_threshold, upper_threshold)
       
-    #noise reduction code
-    kernel = np.ones((3, 3), np.uint8)
-    mask_kernel = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    noise_reduction = cv2.blur(mask,(50,50))
-    noise_reduction = cv2.inRange(noise_reduction,10,50)
+    #noise reduction code (also reduimentary "contours")
+    noise_reduction = cv2.blur(mask,(15,15))
+    noise_reduction = cv2.inRange(noise_reduction,1,70)
     noise_reduction = cv2.blur(noise_reduction,(15,15))
 
-    circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
+    #find Circles
+    circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,minDist=25,param1=50,param2=70,minRadius=10,maxRadius=120)
 
     if circles is not None:
       circles = np.uint16(np.around(circles))
-      for i in circles[0,:]:
-        print("PID",PIDCalc(i[0],distance_estimation(i[2])))
-        #vision_nt.putNumber('PID',PIDCalc(i[0]))
+      max_radius = math.floor((circles.argmax()+1)/3)
+      x_pos = circles[0,max_radius,0]
+      print(PIDCalc(x_pos))
+      #vision_nt.putNumber('PID',PIDCalc(x_pos))
+    
+    #Print Frames Per Second
+    #print("FPS: ", round(1.0 / (time.time() - start_time)))
 
 else:
   while True:
@@ -148,18 +130,19 @@ else:
     mask2 = cv2.inRange(hsv, lower_threshold2, upper_threshold2)
     mask = mask1 + mask2
       
-    #noise reduction code
-    kernel = np.ones((3, 3), np.uint8)
-    mask_kernel = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    noise_reduction = cv2.blur(mask,(50,50))
-    noise_reduction = cv2.inRange(noise_reduction,10,50)
-    noise_reduction = cv2.blur(noise_reduction,(15,15)) 
+    #noise reduction code (also reduimentary "contours")
+    noise_reduction = cv2.blur(mask,(15,15))
+    noise_reduction = cv2.inRange(noise_reduction,1,70)
+    noise_reduction = cv2.blur(noise_reduction,(15,15))
 
-    circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
+    #find Circles
+    circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,minDist=25,param1=50,param2=70,minRadius=10,maxRadius=120)
 
     if circles is not None:
       circles = np.uint16(np.around(circles))
-      for i in circles[0,:]:
-        vision_nt.putNumber('PID',PIDCalc(i[0]))
+      max_radius = math.floor((circles.argmax()+1)/3)
+      x_pos = circles[0,max_radius,0]
+      print(PIDCalc(x_pos))
+      #vision_nt.putNumber('PID',PIDCalc(x_pos))
 
     #print("FPS: ", round(1.0 / (time.time() - start_time)))

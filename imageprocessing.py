@@ -1,14 +1,14 @@
 import cv2
 import numpy as np
 import time
+import math
 
 blue_ball = True #determine ally color
 
 #PID controller coefficients
 Kp = 1 #coefficient for proportional
-Ki = 0 #coefficient for integral
+Ki = 0.2 #coefficient for integral
 Kd = 0 #coefficient for derivative
-Kdist = 1 #coefficient for distance
 
 integral_previous = 0
 start_time = time.time()
@@ -23,34 +23,20 @@ else:
   lower_threshold2 = np.array([170,40,40])
   upper_threshold2 = np.array([179,255,255])
 
-def distance_estimation(radius):
-    global distance_avg
-    distance_avg = np.append(np.delete(np.copy(distance_avg),0),radius)
-    tune = (int)(np.average(distance_avg)) - 50
-    if(tune < 0):
-        tune = 0
-    if(tune > 40):
-        tune = 40
-    return tune
-
 #PID calculations
-def PIDCalc(x_value, distance):
+def PIDCalc(x_value):
   #declares integral previous and start time as the global ones
   global integral_previous
   global start_time
 
   #x_value adjustments
-  x_value = 160 - x_value
+  x_value = 320 - x_value
 
   #PID calculations
   errorP = x_value * Kp
   errorI = (integral_previous + (x_value * (time.time()-start_time))) * Ki
   errorD = Kd
   error = errorP + errorI + errorD
-  if (error > 0):
-      error += distance*Kdist
-  else:
-      error -= distance*Kdist
 
   #updating integral
   integral_previous = errorI
@@ -61,7 +47,7 @@ def PIDCalc(x_value, distance):
 
 
 
-scale_factor = 2
+scale_factor = 1
 
 vid = cv2.VideoCapture(0)
 ret, test_frame = vid.read()
@@ -71,6 +57,8 @@ y_res = int(test_frame.shape[0]/scale_factor)
 
 if(blue_ball):
   while True:
+    start_time = time.time()
+
     #getting video frame
     ret, frame = vid.read()
     frame_scaled = cv2.resize(frame, dsize=(x_res, y_res), interpolation=cv2.INTER_CUBIC)
@@ -82,22 +70,25 @@ if(blue_ball):
     mask = cv2.inRange(hsv, lower_threshold, upper_threshold)
       
     #noise reduction code
-    kernel = np.ones((3, 3), np.uint8)
-    mask_kernel = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    noise_reduction = cv2.blur(mask,(50,50))
-    noise_reduction = cv2.inRange(noise_reduction,10,50)
+    noise_reduction = cv2.blur(mask,(15,15))
+    noise_reduction = cv2.inRange(noise_reduction,1,70)
     noise_reduction = cv2.blur(noise_reduction,(15,15))
 
-    circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
+    circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,minDist=25,param1=50,param2=70,minRadius=10,maxRadius=120)
 
     if circles is not None:
       circles = np.uint16(np.around(circles))
-      for i in circles[0,:]:
-        print("PID",PIDCalc(i[0],distance_estimation(i[2])))
+      max_radius = math.floor((circles.argmax()+1)/3)
+      x_pos = circles[0,max_radius,0]
+      y_pos = circles[0,max_radius,1]
+      print("x:",x_pos,"y:",y_pos)
     
     cv2.imshow("result",noise_reduction)
+    cv2.imshow("normal",frame_scaled)
     if cv2.waitKey(1) & 0xFF == ord('q'):
       break
+
+    print("FPS: ", round(1.0 / (time.time() - start_time)))
 
 else:
   while True:
@@ -121,8 +112,15 @@ else:
 
     if circles is not None:
       circles = np.uint16(np.around(circles))
+      max_radius = math.floor((circles.argmax()+1)/3)
+      x_pos = circles[0,max_radius,0]
+      y_pos = circles[0,max_radius,1]
+      print("x:",x_pos,"y:",y_pos)
       for i in circles[0,:]:
-        print("sadge")
+        # draw the outer circle
+        cv2.circle(frame_scaled,(i[0],i[1]),i[2],(0,255,0),2)
+        # draw the center of the circle
+        cv2.circle(frame_scaled,(i[0],i[1]),2,(0,0,255),3)
 
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
     if cv2.waitKey(1) & 0xFF == ord('q'):
