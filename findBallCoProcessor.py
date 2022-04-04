@@ -108,11 +108,15 @@ if(blue_ball):
     circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,minDist=25,param1=50,param2=70,minRadius=10,maxRadius=120)
 
     if circles is not None:
+      vision_nt.putBoolean('seeBall',True)
       circles = np.uint16(np.around(circles))
       max_radius = math.floor((circles.argmax()+1)/3)
       x_pos = circles[0,max_radius,0]
       #print(PIDCalc(x_pos))
       vision_nt.putNumber('PID',PIDCalc(x_pos))
+    else:
+      vision_nt.putBoolean('seeBall',False)
+
     
     #Print Frames Per Second
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
