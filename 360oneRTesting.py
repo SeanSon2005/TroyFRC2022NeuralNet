@@ -1,6 +1,6 @@
 
 import cv2
-import numpy
+import numpy as np
 
 scale_factor = 1
 

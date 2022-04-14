@@ -6,7 +6,6 @@ from networktables import NetworkTable, NetworkTables
 import threading
 import math
 
-blue_ball = True #determine ally color Blue(True) or Red(False)
 testing_on_computer = False #testing on roborio(False) or computer(True)
 
 #PID controller coefficients
@@ -16,15 +15,6 @@ Kd = 0 #coefficient for derivative
 
 integral_previous = 0
 start_time = time.time()
-
-if(blue_ball):
-  lower_threshold = np.array([100,40,40])
-  upper_threshold = np.array([130,255,255])
-else:
-  lower_threshold = np.array([0,40,40])
-  upper_threshold = np.array([8,255,255])
-  lower_threshold2 = np.array([170,40,40])
-  upper_threshold2 = np.array([179,255,255])
 
 scale_factor = 1
 
@@ -61,6 +51,17 @@ if not testing_on_computer:
           cond.wait()
 
 vision_nt = NetworkTables.getTable('Vision')
+
+#finds out team color through network tables
+blue_ball = vision_nt.getBoolean("blueBall")
+if(blue_ball):
+  lower_threshold = np.array([100,40,40])
+  upper_threshold = np.array([130,255,255])
+else:
+  lower_threshold = np.array([0,40,40])
+  upper_threshold = np.array([8,255,255])
+  lower_threshold2 = np.array([170,40,40])
+  upper_threshold2 = np.array([179,255,255])
 
 #PID calculations
 def PIDCalc(x_value):

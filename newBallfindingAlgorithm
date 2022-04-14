@@ -1,0 +1,101 @@
+from configparser import NoSectionError
+import cv2
+import numpy as np
+import time
+from networktables import NetworkTable, NetworkTables
+import threading
+import math 
+
+blue_ball = True #determine ally color Blue(True) or Red(False)
+testing_on_computer = True #testing on roborio(False) or computer(True)
+
+#PID controller coefficients
+Kp = 1 #coefficient for proportional
+Ki = 0.2 #coefficient for integral
+Kd = 0 #coefficient for derivative
+
+integral_previous = 0
+start_time = time.time()
+
+if(blue_ball):
+  lower_threshold = np.array([100,155,130])
+  upper_threshold = np.array([107,185,200])
+else:
+  lower_threshold = np.array([0,40,40])
+  upper_threshold = np.array([8,255,255])
+  lower_threshold2 = np.array([170,40,40])
+  upper_threshold2 = np.array([179,255,255])
+
+x_res = 640
+y_res = 360
+
+vid = cv2.VideoCapture(0)
+
+#PID calculations
+def PIDCalc(x_value):
+  #declares integral previous and start time as the global ones
+  global integral_previous
+  global start_time
+
+  #x_value adjustments (find error relative to center: 320p)
+  x_value = 320 - x_value
+
+  #PID calculations
+  errorP = x_value * Kp
+  errorI = (integral_previous + (x_value * (time.time()-start_time))) * Ki
+  errorD = Kd
+  error = errorP + errorI + errorD
+  #updating integral
+  integral_previous = errorI
+
+  #update start time
+  start_time = time.time()
+  
+  return error/320
+
+
+if(blue_ball):
+  while True:
+    #starting time for finding Frames per second
+    start_time = time.time()
+
+    #getting video frame
+    ret, frame_scaled = vid.read()
+  
+    #convert image to HSV
+    hsv = cv2.cvtColor(frame_scaled, cv2.COLOR_BGR2HSV)
+
+    #mask image with color range (blue)
+    mask = cv2.inRange(hsv, lower_threshold, upper_threshold)
+      
+    #noise reduction code
+    kernel = np.ones((3, 3), np.uint8)
+    noise_reduction = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    #noise_reduction = cv2.blur(noise_reduction,(30,30))
+
+    Z = np.transpose(np.where(noise_reduction))
+
+    if(len(Z) > 0):
+        #find Clusters
+        # convert to np.float32
+        Z = np.float32(Z)
+
+        # define criteria and apply kmeans()
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 6, 1.0)
+        ret,label,center = cv2.kmeans(Z,2,None,criteria,6,cv2.KMEANS_RANDOM_CENTERS)
+
+        # draw the circle
+        circles = np.uint16(np.around(center))
+        print(np.shape(circles))
+        #cv2.circle(noise_reduction,(center[0][0],center[1][0]),5,(0,255,0),2)
+
+    
+    cv2.imshow("result",noise_reduction)
+
+    #Print Frames Per Second
+    print("FPS: ", round(1.0 / (time.time() - start_time)))
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+      break
+
+vid.release()
+cv2.destroyAllWindows()
