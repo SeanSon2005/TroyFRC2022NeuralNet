@@ -19,17 +19,16 @@ y_res = 360 #camera height
 integral_previous = 0
 start_time = time.time()
 
-scale_factor = 1
-
+#Camera Setup
 cs = CameraServer.getInstance()
 cs.setResolution(x_res, y_res)
 cs.enableLogging()
 
 camera = cs.startAutomaticCapture()
-
 cvSink = cs.getVideo()
 output = cs.putVideo("Front Camera", x_res, y_res)
 
+#declaring thresholds for both red and blue balls
 lower_thresholdRED = np.array([0,40,40])
 upper_thresholdRED = np.array([8,255,255])
 lower_threshold2RED = np.array([170,40,40])
@@ -123,7 +122,7 @@ while True:
     if circles is not None:
       vision_nt.putBoolean('seeBall',True)
       circles = np.uint16(np.around(circles))
-      max_radius = math.floor((circles.argmax()+1)/3)
+      max_radius = math.floor((np.argmax(circles, axis=1)[2] + 1)/ 3)
       x_pos = circles[0,max_radius,0]
       #print(PIDCalc(x_pos))
       vision_nt.putNumber('PID',PIDCalc(x_pos))
