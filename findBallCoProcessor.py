@@ -73,7 +73,7 @@ def PIDCalc(x_value):
   errorP = x_value * Kp
   errorI = (integral_previous + (x_value * (time.time()-start_time))) * Ki
   errorD = Kd
-  error = errorP + errorI + errorD
+  error = errorP + errorI - errorD
   #updating integral
   integral_previous = errorI
 
