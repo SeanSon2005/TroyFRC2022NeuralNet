@@ -3,6 +3,7 @@ from cv2 import contourArea
 import numpy as np
 import time
 import math
+import threading
 
 blue_ball = True #determine ally color
 
@@ -50,11 +51,17 @@ def PIDCalc(x_value):
 
 scale_factor = 1
 
-vid = cv2.VideoCapture(0)
+vid = cv2.VideoCapture(1)
 ret, test_frame = vid.read()
 
 x_res = int(test_frame.shape[1]/scale_factor)
 y_res = int(test_frame.shape[0]/scale_factor)
+
+def cv2Circle(frame, i):
+  # draw the outer circle
+  cv2.circle(frame,(i[0],i[1]),i[2],(0,255,0),2)
+  # draw the center of the circle
+  cv2.circle(frame,(i[0],i[1]),2,(0,0,255),3)
 
 if(blue_ball):
   while True:
@@ -86,18 +93,28 @@ if(blue_ball):
       x_pos = circles[0,max_radius,0]
       y_pos = circles[0,max_radius,1]
       print("x:",x_pos,"y:",y_pos)
+      threads = []
       for i in circles[0,:]:
+        t = threading.Thread(target=cv2Circle, args=[frame_scaled, i])
+        threads.append(t)
+        t.start()
+        #cv2Circle(frame_scaled, i)
+        '''
         # draw the outer circle
         cv2.circle(frame_scaled,(i[0],i[1]),i[2],(0,255,0),2)
         # draw the center of the circle
         cv2.circle(frame_scaled,(i[0],i[1]),2,(0,0,255),3)
-
+        '''
+      for t in threads:
+        t.join()
+      threads.clear()
     cv2.imshow('Objects Detected',frame_scaled)
     cv2.imshow("normal",grayImage)
     if cv2.waitKey(1) & 0xFF == ord('q'):
       break
 
     #print("FPS: ", round(1.0 / (time.time() - start_time)))
+    print("h", start_time, time.time())
 
 vid.release()
 cv2.destroyAllWindows()

@@ -1,23 +1,28 @@
 
 import cv2
 import numpy as np
+import time
 
 scale_factor = 1
+camera_number = 1
 
-vid = cv2.VideoCapture(0)
-ret, test_frame = vid.read()
+cap = cv2.VideoCapture(camera_number + cv2.CAP_DSHOW)
+if not cap.isOpened():
+    print("Cannot open usb camera")
+    exit()
 
-x_res = int(test_frame.shape[1]/scale_factor)
-y_res = int(test_frame.shape[0]/scale_factor)
-print(x_res,y_res)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 while(True):
-
-    ret, frame = vid.read()
+    start_time = time.time()
+    ret, frame = cap.read()
     
     cv2.imshow("res",frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
       break
 
-vid.release()
+    print("FPS: ", round(1.0 / (time.time() - start_time)))
+
+cap.release()
 cv2.destroyAllWindows()

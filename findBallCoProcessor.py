@@ -13,8 +13,8 @@ Kp = 1 #coefficient for proportional
 Ki = 0.2 #coefficient for integral
 Kd = 0 #coefficient for derivative
 
-x_res = 640 #camera width
-y_res = 360 #camera height
+x_res = 1280 #camera width
+y_res = 720 #camera height
 
 integral_previous = 0
 start_time = time.time()
@@ -26,6 +26,7 @@ cs.enableLogging()
 camera = cs.startAutomaticCapture()
 cvSink = cs.getVideo()
 output = cs.putVideo("Front Camera", x_res, y_res)
+
 
 #declaring thresholds for both red and blue balls
 lower_thresholdRED = np.array([0,40,40])

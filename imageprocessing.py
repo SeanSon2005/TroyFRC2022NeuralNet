@@ -49,8 +49,15 @@ def PIDCalc(x_value):
 
 scale_factor = 1
 
-vid = cv2.VideoCapture(0)
-ret, test_frame = vid.read()
+cap = cv2.VideoCapture(1 + cv2.CAP_DSHOW)
+if not cap.isOpened():
+    print("Cannot open usb camera")
+    exit()
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+ret, test_frame = cap.read()
 
 x_res = int(test_frame.shape[1]/scale_factor)
 y_res = int(test_frame.shape[0]/scale_factor)
@@ -60,7 +67,7 @@ if(blue_ball):
     start_time = time.time()
 
     #getting video frame
-    ret, frame = vid.read()
+    ret, frame = cap.read()
     frame_scaled = cv2.resize(frame, dsize=(x_res, y_res), interpolation=cv2.INTER_CUBIC)
     
     #convert image to HSV
@@ -93,7 +100,7 @@ if(blue_ball):
 else:
   while True:
 
-    ret, frame = vid.read()
+    ret, frame = cap.read()
     frame_scaled = cv2.resize(frame, dsize=(x_res, y_res), interpolation=cv2.INTER_CUBIC)
     
     hsv = cv2.cvtColor(frame_scaled, cv2.COLOR_BGR2HSV)
@@ -126,5 +133,5 @@ else:
     if cv2.waitKey(1) & 0xFF == ord('q'):
       break
 
-vid.release()
+cap.release()
 cv2.destroyAllWindows()
