@@ -3,9 +3,8 @@ import cv2 as cv2
 import os
 import tkinter as tk
 from PIL import Image, ImageTk
-import csv
   
-path = "C://Users//astro//Documents//Coding//AIDATA"
+path = "C://Users//astro//Documents//Coding//yolov7//train"
 os.chdir(path+"//images")
   
 def generate_output(original):
@@ -69,8 +68,6 @@ def generate_input(image):
     return image  
 
 file_count = len(os.listdir())
-image_array = np.empty(file_count,dtype=object)
-coords_array = np.empty(file_count,dtype=object)
 ind = 0
 for file in os.listdir():
     xtop = 0
@@ -78,20 +75,17 @@ for file in os.listdir():
     xbot = 0
     yright = 0
     print("Opening",file)
+    
     image = cv2.imread(file)
-    coords_array[ind] = generate_output(image)
-    image_array[ind] = generate_input(image)
+    image_width = len(image[0])
+    image_height = len(image)
+
+    coords = generate_output(image)
+    os.chdir(path+"//labels")
+    with open('image_'+str(ind)+".txt", 'w') as txtfile:
+        txtfile.write('0 ' + str(round(coords[0]/image_width,6)) + " " + str(round(coords[1]/image_height,6)) + " "+ str(round(coords[2]/image_width,6)) + " "+ str(round(coords[3]/image_height,6)))
     ind += 1
     print("Done")
     
-
-os.chdir(path+"//labels")
-with open('data.csv', 'w') as csvfile:
-    writer = csv.writer(csvfile)
-    header = ["class","x1","y1","x2","y2"]
-    writer.writerow(header)         
-    for i in range(file_count):
-        writer.writerow((0,)+coords_array[i])
-    csvfile.close()
     
         
