@@ -84,8 +84,10 @@ for file in os.listdir():
     os.chdir(path+"//labels")
     with open('image_'+str(ind)+".txt", 'w') as txtfile:
         txtfile.write('0 ' + str(round(coords[0]/image_width,6)) + " " + str(round(coords[1]/image_height,6)) + " "+ str(round(coords[2]/image_width,6)) + " "+ str(round(coords[3]/image_height,6)))
+        txtfile.close()
     ind += 1
-    print("Done")
+    os.chdir(path+"//images")
+    print("Saved")
     
     
         
