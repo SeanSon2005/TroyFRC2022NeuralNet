@@ -12,7 +12,8 @@ Kd = 0 #coefficient for derivative
 
 integral_previous = 0
 start_time = time.time()
-distance_avg = np.array([1,1,1,1,1,1])
+frame_count = 0
+frame_num = 0
 
 if(blue_ball):
   lower_threshold = np.array([100,40,40])
@@ -49,13 +50,14 @@ def PIDCalc(x_value):
 
 scale_factor = 1
 
-cap = cv2.VideoCapture(1 + cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("Cannot open usb camera")
     exit()
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
 
 ret, test_frame = cap.read()
 
@@ -68,34 +70,32 @@ if(blue_ball):
 
     #getting video frame
     ret, frame = cap.read()
-    frame_scaled = cv2.resize(frame, dsize=(x_res, y_res), interpolation=cv2.INTER_CUBIC)
     
     #convert image to HSV
-    hsv = cv2.cvtColor(frame_scaled, cv2.COLOR_BGR2HSV)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     #mask image with color range (blue)
     mask = cv2.inRange(hsv, lower_threshold, upper_threshold)
       
     #noise reduction code
-    noise_reduction = cv2.blur(mask,(15,15))
-    noise_reduction = cv2.inRange(noise_reduction,1,70)
+    noise_reduction = cv2.blur(mask,(10,10))
+    noise_reduction = cv2.inRange(noise_reduction,1,75)
     noise_reduction = cv2.blur(noise_reduction,(15,15))
 
     circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,minDist=25,param1=50,param2=70,minRadius=10,maxRadius=120)
 
-    if circles is not None:
-      circles = np.uint16(np.around(circles))
-      max_radius = math.floor((circles.argmax()+1)/3)
-      x_pos = circles[0,max_radius,0]
-      y_pos = circles[0,max_radius,1]
-      print("x:",x_pos,"y:",y_pos)
+
     
-    cv2.imshow("result",noise_reduction)
-    cv2.imshow("normal",frame_scaled)
+    #cv2.imshow("result",noise_reduction)
+    cv2.imshow("normal",frame)
+    #cv2.imshow("normal2",noise_reduction)
     if cv2.waitKey(1) & 0xFF == ord('q'):
       break
+    fps = round(1.0 / (time.time() - start_time))
+    print("FPS: ", fps)
 
-    print("FPS: ", round(1.0 / (time.time() - start_time)))
+    frame_count += fps
+    frame_num += 1
 
 else:
   while True:
@@ -109,10 +109,8 @@ else:
     mask = mask1 + mask2
       
     #noise reduction code
-    kernel = np.ones((3, 3), np.uint8)
-    mask_kernel = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    noise_reduction = cv2.blur(mask,(50,50))
-    noise_reduction = cv2.inRange(noise_reduction,10,50)
+    noise_reduction = cv2.blur(mask,(15,15))
+    noise_reduction = cv2.inRange(noise_reduction,10,70)
     noise_reduction = cv2.blur(noise_reduction,(15,15)) 
 
     circles = cv2.HoughCircles(noise_reduction,cv2.HOUGH_GRADIENT,1.3,x_res,param1=50,param2=70,minRadius=1,maxRadius=120)
@@ -135,3 +133,4 @@ else:
 
 cap.release()
 cv2.destroyAllWindows()
+print("avg FPS",(frame_count/frame_num))

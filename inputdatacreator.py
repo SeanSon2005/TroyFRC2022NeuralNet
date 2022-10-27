@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np 
 import cv2 as cv2
 import os
 import tkinter as tk
@@ -23,12 +23,22 @@ def generate_output(original):
         global yright
         yright = y
         redraw()
+
+    def update_crop(event):
+        x,y = event.x, event.y
+        global cropx
+        global cropy
+        cropx = x
+        cropy = y
+        redraw()
         
     def redraw():
         global xtop
         global yleft
         global xbot
         global yright
+        global cropx
+        global cropy
         canvas.delete("all")
         canvas.create_image(0,0,image=test, anchor="nw")
         if not xtop == 0:
@@ -39,6 +49,11 @@ def generate_output(original):
                 canvas.create_line(xtop, yright, xbot, yright, width=2, fill='cyan')
                 canvas.create_line(xtop, yleft, xtop, yright, width=2, fill='cyan')
                 canvas.create_line(xbot, yleft, xbot, yright, width=2, fill='cyan')
+        canvas.create_line(cropx, cropy, cropx+xwidth, cropy, width=2, fill='red')
+        canvas.create_line(cropx, cropy+ywidth, cropx+xwidth, cropy+ywidth, width=2, fill='red')
+        canvas.create_line(cropx, cropy, cropx, cropy+ywidth, width=2, fill='red')
+        canvas.create_line(cropx+xwidth, cropy, cropx+xwidth, cropy+ywidth, width=2, fill='red')
+
 
     def close(event):
         root.destroy()
@@ -51,11 +66,16 @@ def generate_output(original):
 
     canvas = tk.Canvas(root, width=len(original[0]), height=len(original))
     canvas.create_image(0,0,image=test, anchor="nw")
+    canvas.create_line(cropx, cropy, cropx+xwidth, cropy, width=2, fill='red')
+    canvas.create_line(cropx, cropy+ywidth, cropx+xwidth, cropy+ywidth, width=2, fill='red')
+    canvas.create_line(cropx, cropy, cropx, cropy+ywidth, width=2, fill='red')
+    canvas.create_line(cropx+xwidth, cropy, cropx+xwidth, cropy+ywidth, width=2, fill='red')
     canvas.pack()
     canvas.old_coords = None
 
     root.bind('<B1-Motion>', update_position1)
     root.bind('<ButtonPress-1>',update_position1)
+    root.bind('<B2-Motion>', update_crop)
     root.bind('<B3-Motion>', update_position2)
     root.bind('<ButtonPress-3>',update_position2)
     root.bind('<space>',close)
@@ -74,6 +94,10 @@ for file in os.listdir():
     yleft = 0
     xbot = 0
     yright = 0
+    cropx = 320
+    cropy = 40
+    xwidth = 640
+    ywidth = 640
     print("Opening",file)
     
     image = cv2.imread(file)
@@ -83,7 +107,7 @@ for file in os.listdir():
     coords = generate_output(image)
     os.chdir(path+"//labels")
     with open('image_'+str(ind)+".txt", 'w') as txtfile:
-        txtfile.write('0 ' + str(round(coords[0]/image_width,6)) + " " + str(round(coords[1]/image_height,6)) + " "+ str(round(coords[2]/image_width,6)) + " "+ str(round(coords[3]/image_height,6)))
+        txtfile.write('0 ' + str(round(coords[0]/image_width,9)) + " " + str(round(coords[1]/image_height,9)) + " "+ str(round(coords[2]/image_width,9)) + " "+ str(round(coords[3]/image_height,9)))
         txtfile.close()
     ind += 1
     os.chdir(path+"//images")

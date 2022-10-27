@@ -4,7 +4,7 @@ import numpy as np
 import time
 
 scale_factor = 1
-camera_number = 1
+camera_number = 0
 
 cap = cv2.VideoCapture(camera_number + cv2.CAP_DSHOW)
 if not cap.isOpened():
@@ -18,11 +18,11 @@ while(True):
     start_time = time.time()
     ret, frame = cap.read()
     
-    cv2.imshow("res",frame)
+    #cv2.imshow("res",frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
       break
 
     print("FPS: ", round(1.0 / (time.time() - start_time)))
 
 cap.release()
-cv2.destroyAllWindows()
+#cv2.destroyAllWindows()

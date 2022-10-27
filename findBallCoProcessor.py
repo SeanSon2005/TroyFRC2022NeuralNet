@@ -13,20 +13,12 @@ Kp = 1 #coefficient for proportional
 Ki = 0.2 #coefficient for integral
 Kd = 0 #coefficient for derivative
 
-x_res = 1280 #camera width
-y_res = 720 #camera height
+x_res = 640 #camera width
+y_res = 360 #camera height
+x_pos = (x_res / 2) #initial center pixel point
 
 integral_previous = 0
 start_time = time.time()
-
-#Camera Setup
-cs = CameraServer.getInstance()
-cs.enableLogging()
-
-camera = cs.startAutomaticCapture()
-cvSink = cs.getVideo()
-output = cs.putVideo("Front Camera", x_res, y_res)
-
 
 #declaring thresholds for both red and blue balls
 lower_thresholdRED = np.array([0,40,40])
@@ -60,6 +52,15 @@ if not testing_on_computer:
   #get the table
   vision_nt = NetworkTables.getTable('Vision')
 
+#Camera Setup (done after network tables")
+cs = CameraServer.getInstance()
+cs.enableLogging()
+
+camera = cs.startAutomaticCapture()
+camera.setResolution(x_res,y_res)
+cvSink = cs.getVideo(camera=camera)
+output = cs.putVideo("VisionCam", x_res, y_res)
+
 #PID calculations
 def PIDCalc(x_value):
   #declares integral previous and start time as the global ones
@@ -69,16 +70,21 @@ def PIDCalc(x_value):
   #x_value adjustments (find error relative to center: 320p)
   x_value = 320 - x_value
 
+  #Retrieve values from NTR
+  Kp = vision_nt.getNumber("KP", 1)
+  Ki = vision_nt.getNumber("KI", 0.2)
+
   #PID calculations
   errorP = x_value * Kp
   errorI = (integral_previous + (x_value * (time.time()-start_time))) * Ki
+
+  #update start time
+  start_time = time.time()
+
   errorD = Kd
   error = errorP + errorI - errorD
   #updating integral
   integral_previous = errorI
-
-  #update start time
-  start_time = time.time()
   
   return error/320
 
@@ -108,9 +114,9 @@ if not testing_on_computer:
           mask = mask1 + mask2
         
       #noise reduction code (also reduimentary "contours")
-      noise_reduction = cv2.blur(mask,(15,15))
-      noise_reduction = cv2.inRange(noise_reduction,1,70)
-      noise_reduction = cv2.blur(noise_reduction,(15,15))
+      noise_reduction = cv2.blur(mask,(12,12))
+      noise_reduction = cv2.inRange(noise_reduction,1,80)
+      noise_reduction = cv2.blur(noise_reduction,(12,12))
 
       #find Circles
       #param1 canny edge parameter
@@ -125,35 +131,31 @@ if not testing_on_computer:
         index = np.argmax(circles[:,2])
         x_pos = circles[index][0]
         y_pos = circles[index][1]
-        pidVal = PIDCalc(x_pos)
         cv2.circle(frame_scaled,(x_pos,y_pos),5,(0,255,0),2)
         cv2.putText(img = frame_scaled,text = str(pidVal),org = (10, 340),fontFace = cv2.FONT_HERSHEY_DUPLEX,fontScale = 1.0,color = (125, 246, 55),thickness = 2)
-        vision_nt.putNumber('PID',pidVal)
       else:
         vision_nt.putBoolean('seeBall',False)
+      pidVal = PIDCalc(x_pos)
+      vision_nt.putNumber('PID',pidVal)
 
       output.putFrame(frame_scaled) #puts frame into Camera Server
 else:
   while True:
       #starting time for finding Frames per second
-      #start_time = time.time()
 
       #getting video frame
-      ret, frame_scaled = cvSink.grabFrame(img)
-    
+      ret, frame = cvSink.grabFrame(img)
+
       #convert image to HSV
-      hsv = cv2.cvtColor(frame_scaled, cv2.COLOR_BGR2HSV)
+      hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
       #mask image with color range (blue)
-      hsv = cv2.cvtColor(frame_scaled, cv2.COLOR_BGR2HSV)
-      mask1 = cv2.inRange(hsv, lower_thresholdRED, upper_thresholdRED)
-      mask2 = cv2.inRange(hsv, lower_threshold2RED, upper_threshold2RED)
-      mask = mask1 + mask2
+      mask = cv2.inRange(hsv, lower_threshold, upper_threshold)
         
       #noise reduction code (also reduimentary "contours")
-      noise_reduction = cv2.blur(mask,(15,15))
-      noise_reduction = cv2.inRange(noise_reduction,1,70)
-      noise_reduction = cv2.blur(noise_reduction,(15,15))
+      noise_reduction = cv2.blur(mask,(12,12))
+      noise_reduction = cv2.inRange(noise_reduction,1,80)
+      noise_reduction = cv2.blur(noise_reduction,(12,12))
 
       #find Circles
       #param1 canny edge parameter
@@ -168,6 +170,7 @@ else:
         index = np.argmax(circles[:,2])
         x_pos = circles[index][0]
         y_pos = circles[index][1]
-        cv2.circle(frame_scaled,(x_pos,y_pos),5,(0,255,0),2)
-        cv2.putText(frame_scaled,text = str(PIDCalc(x_pos)),org = (10, 340),fontFace = cv2.FONT_HERSHEY_DUPLEX,fontScale = 1.0,color = (125, 246, 55),thickness = 2)
-      output.putFrame(frame_scaled) #puts frame into Camera Server
+        cv2.circle(frame,(x_pos,y_pos),circles[index][2],(0,255,0),2)
+      pidVal = PIDCalc(x_pos)
+      cv2.putText(img = frame,text = str(pidVal),org = (10, 340),fontFace = cv2.FONT_HERSHEY_DUPLEX,fontScale = 1.0,color = (125, 246, 55),thickness = 2)
+      output.putFrame(frame) #puts frame into Camera Server
